@@ -1,3 +1,5 @@
+const { default: Axios } = require("axios");
+
 let transactions = [];
 let myChart;
 
@@ -6,13 +8,15 @@ fetch("/api/transaction")
     return response.json();
   })
   .then(data => {
-    // save db data on global variable
     transactions = data;
-
-    populateTotal();
-    populateTable();
-    populateChart();
+    populateAll();
   });
+
+function populateAll() {
+  populateTotal();
+  populateTable();
+  populateChart();
+}
 
 function populateTotal() {
   // reduce transaction amounts to a single total value
@@ -108,19 +112,10 @@ function sendTransaction(isAdding) {
   transactions.unshift(transaction);
 
   // re-run logic to populate ui with new record
-  populateChart();
-  populateTable();
-  populateTotal();
+  populateAll();
   
   // also send to server
-  fetch("/api/transaction", {
-    method: "POST",
-    body: JSON.stringify(transaction),
-    headers: {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json"
-    }
-  })
+  Axios.post("/api/transaction", JSON.stringify(transaction))
   .then(response => {    
     return response.json();
   })
@@ -136,7 +131,7 @@ function sendTransaction(isAdding) {
   })
   .catch(err => {
     // fetch failed, so save in indexed db
-    saveRecord(transaction);
+    saveLocal(transaction);
 
     // clear form
     nameEl.value = "";
@@ -151,3 +146,8 @@ document.querySelector("#add-btn").onclick = function() {
 document.querySelector("#sub-btn").onclick = function() {
   sendTransaction(false);
 };
+
+function saveLocal(transaction) {
+  indexedDB.saveLocal(transaction);
+}
+
